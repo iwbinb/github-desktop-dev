@@ -4,6 +4,7 @@ import {
   app,
   Menu,
   BrowserWindow,
+  dialog,
   shell,
   session,
   systemPreferences,
@@ -58,7 +59,10 @@ import { CLIAction } from '../lib/cli-action'
 // to this app, while the author/committer variables ensure repository-local
 // config cannot accidentally switch commits back to the other account.
 if (__APP_NAME__ === 'GitHub Desktop-dev') {
-  process.env.GIT_CONFIG_GLOBAL = Path.join(app.getPath('userData'), 'gitconfig')
+  process.env.GIT_CONFIG_GLOBAL = Path.join(
+    app.getPath('userData'),
+    'gitconfig'
+  )
   process.env.GIT_AUTHOR_NAME = 'iwbinb'
   process.env.GIT_AUTHOR_EMAIL = 'iwbinb@gmail.com'
   process.env.GIT_COMMITTER_NAME = 'iwbinb'
@@ -649,6 +653,26 @@ app.on('ready', () => {
   ipcMain.handle('show-item-in-folder', async (_, path) =>
     shell.showItemInFolder(path)
   )
+  ipcMain.handle('confirm-reveal-directory', async event => {
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const options: Electron.MessageBoxOptions = {
+      type: 'warning',
+      title: 'Reveal Repository in Finder?',
+      message: 'This repository might be an application.',
+      detail:
+        'Opening it directly could run software. You can reveal and select it in Finder without opening it.',
+      buttons: ['Reveal in Finder', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true,
+    }
+    const result =
+      window === null
+        ? await dialog.showMessageBox(options)
+        : await dialog.showMessageBox(window, options)
+
+    return result.response === 0
+  })
 
   ipcMain.on('unsafe-open-directory', async (_, path) =>
     UNSAFE_openDirectory(path)
